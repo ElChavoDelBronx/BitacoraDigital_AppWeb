@@ -1,14 +1,17 @@
 const PrincipalController = {}
-const API_URL = "";
-const HEADERS = {
-    "content-type" : "application/json",
-    "accept" : "application/json"
-}
-
-PrincipalController.findAll = async () =>
-    await fetch(API_URL, {
+const API_URL = "http://localhost:8081/api/dashboards";
+const getHeaders = () => {
+    const token = localStorage.getItem("token");
+    return{
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": token ? `Bearer ${token}` : ""
+    };
+};
+PrincipalController.getInfo = async () =>
+    await fetch(`${API_URL}/admin`, {
         method: "GET",
-        headers: HEADERS
+        headers: getHeaders()
     })
     .then(response => response.json())
     .then(result => (result))

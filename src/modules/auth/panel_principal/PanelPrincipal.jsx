@@ -3,6 +3,7 @@ import BaseCard from "../../../components/cards/BaseCard";
 import EstadisticasCard from "./components/EstadisticasCard";
 import ProgresoProyectoItem from "./components/ProgresoProyectoItem";
 import ValidacionesCard from "./components/ValidacionesCard";
+import PrincipalController from "./principal.controller";
 
 const MOCK_STATS = [
     { title: "Estudiantes Activos", value: "48", iconId: "users", color: "bg-primary" },
@@ -30,7 +31,45 @@ export default function PanelPrincipal() {
     const [activities, setActivities] = useState(MOCK_ACTIVITIES);
     const [cargando, setCargando] = useState(false);
 
-    if(cargando) return <div className="p-5 text-center">Cargando panel...</div>;
+    //if(cargando) return <div className="p-5 text-center">Cargando panel...</div>;
+
+    const cargarDashboard = async () => {
+        setCargando(true);
+        
+        try {
+            const { data } = await PrincipalController.getInfo();
+            
+            if (data && data.stats) {
+                console.log("Datos recibidos:", data);
+                
+                setStats(prevStats => prevStats.map(stat => {
+                    if (stat.iconId === "users") {
+                        return { ...stat, value: data.stats.activeStudents || 0 };
+                    }
+                    if (stat.iconId === "projects") {
+                        return { ...stat, value: data.stats.activeProjects || 0 };
+                    }
+                    if (stat.iconId === "tasks") {
+                        return { ...stat, value: data.stats.completedTasks || 0 };
+                    }
+                    return stat;
+                }));
+
+                // Si el backend también trae las actividades recientes, podrías mapearlas aquí:
+                if (data.recentEvidences) {
+                    setActivities(data.recentEvidences); // Descomenta si quieres usar datos reales
+                }
+            }
+        } catch (error) {
+            console.error("Error al conectar con el servidor:", error);
+        } finally {
+            setCargando(false);
+        }
+    }
+
+    useEffect(() => {
+        cargarDashboard();
+    }, []);
 
     return (
         <div className="container-fluid p-0">
