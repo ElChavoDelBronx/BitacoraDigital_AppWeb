@@ -4,6 +4,8 @@ import { useState } from "react";
 
 export default function ProyectosToolbar({onProyectoCreado, formData, onSearch}) {
     const [searchText, setSearchText] = useState('');
+    const usuarioLogueado = JSON.parse(sessionStorage.getItem("usuario") || "{}");
+    const esAdmin = usuarioLogueado.rol === "Administrador" || usuarioLogueado.rol === "ADMIN";
 
     return (
         <div className="col-12 d-flex justify-content-between mb-4">
@@ -21,12 +23,14 @@ export default function ProyectosToolbar({onProyectoCreado, formData, onSearch})
                         onSearch(e.target.value)
                     }} 
                 />
+                {esAdmin && (
+                <button className="btn btn-primary text-nowrap px-4 fw-medium shadow-sm" style={{ height: '50px' }}
+                        data-bs-toggle="modal" 
+                        data-bs-target="#nuevoProyectoModal"> 
+                    + Nuevo Proyecto
+                </button>
+            )}
             </div>
-            <button className="btn btn-primary text-nowrap px-4 fw-medium shadow-sm" style={{ height: '50px' }}
-                    data-bs-toggle="modal" 
-                    data-bs-target="#nuevoProyectoModal"> 
-                + Nuevo Proyecto
-            </button>
             <NuevoProyectoModal onProyectoCreado={onProyectoCreado} formData={formData}/>
         </div>
     );

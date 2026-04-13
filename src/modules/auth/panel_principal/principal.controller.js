@@ -8,13 +8,31 @@ const getHeaders = () => {
         "Authorization": token ? `Bearer ${token}` : ""
     };
 };
-PrincipalController.getInfo = async () =>
-    await fetch(`${API_URL}/admin`, {
-        method: "GET",
-        headers: getHeaders()
-    })
-    .then(response => response.json())
-    .then(result => (result))
-    .catch(console.log())
+
+PrincipalController.getInfo = async (role, userId) => {
+    let endpoint = "";
+
+    // Evaluamos el rol para definir a qué endpoint del backend apuntar
+    if (role === 'Administrador' || role === 'ADMIN') {
+        endpoint = `${API_URL}/admin`;
+    } else if (role === 'Asesor' || role === 'ASESOR') {
+        endpoint = `${API_URL}/advisor/${userId}`;
+    } else {
+        // Por si un estudiante o rol desconocido logra entrar a la web por error
+        console.warn("Rol no soportado para este dashboard web:", role);
+        return { data: null }; 
+    }
+    
+    try {
+        const response = await fetch(endpoint, {
+            method: "GET",
+            headers: getHeaders()
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error en PrincipalController:", error);
+        return null;
+    }
+}
 
 export default PrincipalController

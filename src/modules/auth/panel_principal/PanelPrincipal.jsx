@@ -4,92 +4,142 @@ import EstadisticasCard from "./components/EstadisticasCard";
 import ProgresoProyectoItem from "./components/ProgresoProyectoItem";
 import ValidacionesCard from "./components/ValidacionesCard";
 import PrincipalController from "./principal.controller";
-
-const MOCK_STATS = [
-    { title: "Estudiantes Activos", value: "48", iconId: "users", color: "bg-primary" },
-    { title: "Proyectos en Curso", value: "12", iconId: "projects", color: "bg-danger" },
-    { title: "Tareas Completadas", value: "156", iconId: "tasks", color: "bg-success" },
-];
-
-const MOCK_ADVANCE = [
-    { title: "Sistema de inventarios", progress: 75 },
-    { title: "App Móvil Clínica", progress: 45 },
-    { title: "Portal Web Escolar", progress: 90 },
-    { title: "API REST Municipal", progress: 30 }
-];
-
-const MOCK_ACTIVITIES = [
-    { name: "Pedro Ramirez", title: "Módulo de autenticación", date: "04/02/2026", type: "Archivo" },
-    { name: "Sofia Torres", title: "Base de datos relacional", date: "04/02/2026", type: "Texto" },
-    { name: "Diego Flores", title: "Interfaz de usuario", date: "04/02/2026", type: "Archivo" }
-];
+import { useNavigate } from "react-router-dom";
 
 export default function PanelPrincipal() {
-    
-    const [stats, setStats] = useState(MOCK_STATS);
-    const [advance, setAdvance] = useState(MOCK_ADVANCE);
-    const [activities, setActivities] = useState(MOCK_ACTIVITIES);
-    const [cargando, setCargando] = useState(false);
 
-    //if(cargando) return <div className="p-5 text-center">Cargando panel...</div>;
+    const navigate = useNavigate();
 
-    const cargarDashboard = async () => {
-        setCargando(true);
-        
-        try {
-            const { data } = await PrincipalController.getInfo();
-            
-            if (data && data.stats) {
-                console.log("Datos recibidos:", data);
-                
-                setStats(prevStats => prevStats.map(stat => {
-                    if (stat.iconId === "users") {
-                        return { ...stat, value: data.stats.activeStudents || 0 };
-                    }
-                    if (stat.iconId === "projects") {
-                        return { ...stat, value: data.stats.activeProjects || 0 };
-                    }
-                    if (stat.iconId === "tasks") {
-                        return { ...stat, value: data.stats.completedTasks || 0 };
-                    }
-                    return stat;
-                }));
+    const [stats, setStats] = useState([]);
+    const [activities, setActivities] = useState([]);
+    const [advance, setAdvance] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-                // Si el backend también trae las actividades recientes, podrías mapearlas aquí:
-                if (data.recentEvidences) {
-                    setActivities(data.recentEvidences); // Descomenta si quieres usar datos reales
-                }
+    const fetchData = async () => {
+        setLoading(true);
+        const role = localStorage.getItem("role");
+        const userId = localStorage.getItem("userId");
+
+        const response = await PrincipalController.getInfo(role, userId);
+
+        if (response && response.data) {
+            const data = response.data;
+            console.log("DATOS RECIBIDOS DEL BACKEND:", data); // REVISA ESTO EN LA CONSOLA (F12)
+
+            // 1. DIBUJAR TARJETAS SUPERIORES SEGÚN EL ROL
+            if (role === 'Administrador' || role === 'ADMIN') {
+                // Sincronizamos con AdminStatisticsDTO.java
+                setStats([
+                    { 
+                        title: "Estudiantes Activos", 
+                        value: data.stats.activeStudents || 0, 
+                        iconId: "users", 
+                        color: "bg-primary" 
+                    },
+                    { 
+                        title: "Proyectos en Curso", 
+                        value: data.stats.activeProjects || 0, 
+                        iconId: "projects", 
+                        color: "bg-danger" 
+                    },
+                    { 
+                        title: "Tareas Completadas", 
+                        value: data.stats.completedTasks || 0, 
+                        iconId: "tasks", 
+                        color: "bg-success" 
+                    },
+                ]);
+            } else if (role === 'Asesor' || role === 'ASESOR') {
+                // Sincronizamos con AdvisorStatisticsDTO.java
+                setStats([
+                    { 
+                        title: "Tareas Totales", 
+                        value: data.stats.totalTasks || 0, 
+                        iconId: "tasks", 
+                        color: "bg-primary" 
+                    },
+                    { 
+                        title: "En Progreso", 
+                        value: data.stats.inProgressTasks || 0, 
+                        iconId: "clock", 
+                        color: "bg-warning" 
+                    },
+                    { 
+                        title: "Horas Validadas", 
+                        value: data.stats.validatedHours || 0, 
+                        iconId: "circle-check", 
+                        color: "bg-success" 
+                    },
+                ]);
             }
-        } catch (error) {
-            console.error("Error al conectar con el servidor:", error);
-        } finally {
-            setCargando(false);
+
+            // 2. MAPEAR ACTIVIDADES Y AVANCES (APLICA PARA AMBOS ROLES)
+            // Sincronizamos con RecentEvidences.java (Proyección que ambos DTOs comparten)
+            const mappedEvidences = data.recentEvidences?.map(ev => ({
+                id: ev.id,
+                name: ev.studentName,
+                title: ev.taskTitle,
+                date: ev.uploadDate ? new Date(ev.uploadDate).toLocaleDateString() : "Sin fecha",
+                type: "Evidencia"
+            })) || [];
+            
+            setActivities(mappedEvidences);
+            
+            // Sincronizamos la barra de progreso (la lista advance la comparten ambos DTOs)
+            setAdvance(data.advance || []);
         }
-    }
+        setLoading(false);
+    };
 
     useEffect(() => {
-        cargarDashboard();
+        fetchData();
+        const intervalId = setInterval(() => {
+            fetchData();
+        }, 30000); 
+
+        // Limpiar el temporizador si el usuario sale de la pantalla
+        return () => clearInterval(intervalId);
     }, []);
 
+    if (loading) return <div className="p-5 text-center">Cargando datos reales...</div>;
+
     return (
-        <div className="container-fluid p-0">
-            <div className="row g-4 mb-5">
-                {stats.map((stat, index) => (
-                    <EstadisticasCard key={index} item={stat} />
+        <div className="container-fluid p-4">
+            <div className="row g-4 mb-4">
+                {stats.map((item, index) => (
+                    <EstadisticasCard key={index} item={item} />
                 ))}
             </div>
 
             <div className="row g-4">
                 <div className="col-12 col-lg-8">
                     <BaseCard style={{ height: '100%', minHeight: '620px' }}>
-                        <div className="p-4 mb-4 d-flex justify-content-between align-items-center">
+                        <div className="p-4 d-flex justify-content-between align-items-center">
                             <p className="h4 fw-bold mb-0">Avance por Proyecto</p>
-                            <span className="text-primary" style={{ cursor: 'pointer' }}>Ver todos &gt;</span>
+                            <span 
+                                className="text-primary fw-medium" 
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => navigate('/projects')} // Ajusta la ruta exacta de tu módulo
+                            >
+                                Ver todos &gt;
+                            </span>
                         </div>
                         <div className="p-4">
-                            {advance.map((item, index) => (
-                                <ProgresoProyectoItem key={index} item={item} />
+                            {advance.slice(0, 4).map((item, index) => (
+                                <div 
+                                    key={index} 
+                                    //onClick={() => navigate(`/projects/${proyecto.id}`)} // Ajusta a tu ruta real de proyectos
+                                    //style={{ cursor: "pointer", transition: "transform 0.2s" }}
+                                    className="proyecto-card-hover"
+                                >
+                                    <ProgresoProyectoItem item={item} />
+                                </div>
                             ))}
+                            
+                            {/* Mensaje opcional por si no hay proyectos */}
+                            {advance.length === 0 && (
+                                <p className="text-muted text-center mt-4">No hay proyectos activos.</p>
+                            )}
                         </div>
                     </BaseCard>
                 </div>
@@ -97,17 +147,30 @@ export default function PanelPrincipal() {
                 <div className="col-12 col-lg-4">
                     <BaseCard style={{ height: '100%', minHeight: '620px' }}>
                         <div className="p-4">
-                            <p className="h4 fw-bold mb-4">Validaciones Pendientes</p>
-                            
+                            <p className="h4 fw-bold mb-4">Actividad Reciente</p>
                             <div className="d-flex flex-column">
-                                {activities.map((activity, index) => (
-                                    <ValidacionesCard key={index} item={activity} />
+                                {/* 3. Limitar a máximo 3 elementos usando slice(0, 3) */}
+                                {activities.slice(0, 3).map((activity, index) => (
+                                    <div 
+                                        key={index} 
+                                        //onClick={() => navigate(`/evidence/${activity.id}`)} // Ajusta a tu ruta real de evidencias
+                                        //style={{ cursor: "pointer" }}
+                                    >
+                                        <ValidacionesCard item={activity} />
+                                    </div>
                                 ))}
-                            </div>
 
-                            <button className="btn btn-outline-secondary text-primary w-100 mt-3 fw-bold">
-                                Ver todas las validaciones
-                            </button>
+                                {/* Mensaje opcional por si no hay actividad */}
+                                {activities.length === 0 && (
+                                    <p className="text-muted text-center mt-4">No hay actividad reciente.</p>
+                                )}
+                            </div>
+                            <button 
+                                    className="btn btn-outline-secondary text-primary w-100 mt-auto fw-bold rounded-pill"
+                                    onClick={() => navigate('/evidence')} // Ajusta la ruta exacta de tu módulo
+                                >
+                                    Ver todas las validaciones
+                                </button>
                         </div>
                     </BaseCard>
                 </div>
