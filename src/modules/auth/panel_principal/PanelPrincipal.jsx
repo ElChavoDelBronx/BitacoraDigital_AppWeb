@@ -24,11 +24,11 @@ export default function PanelPrincipal() {
 
         if (response && response.data) {
             const data = response.data;
-            console.log("DATOS RECIBIDOS DEL BACKEND:", data); // REVISA ESTO EN LA CONSOLA (F12)
+            console.log("DATOS RECIBIDOS DEL BACKEND:", data);
 
-            // 1. DIBUJAR TARJETAS SUPERIORES SEGÚN EL ROL
+            
             if (role === 'Administrador' || role === 'ADMIN') {
-                // Sincronizamos con AdminStatisticsDTO.java
+               
                 setStats([
                     { 
                         title: "Estudiantes Activos", 
@@ -50,7 +50,7 @@ export default function PanelPrincipal() {
                     },
                 ]);
             } else if (role === 'Asesor' || role === 'ASESOR') {
-                // Sincronizamos con AdvisorStatisticsDTO.java
+                
                 setStats([
                     { 
                         title: "Tareas Totales", 
@@ -73,8 +73,7 @@ export default function PanelPrincipal() {
                 ]);
             }
 
-            // 2. MAPEAR ACTIVIDADES Y AVANCES (APLICA PARA AMBOS ROLES)
-            // Sincronizamos con RecentEvidences.java (Proyección que ambos DTOs comparten)
+            
             const mappedEvidences = data.recentEvidences?.map(ev => ({
                 id: ev.id,
                 name: ev.studentName,
@@ -85,7 +84,7 @@ export default function PanelPrincipal() {
             
             setActivities(mappedEvidences);
             
-            // Sincronizamos la barra de progreso (la lista advance la comparten ambos DTOs)
+           
             setAdvance(data.advance || []);
         }
         setLoading(false);
@@ -97,7 +96,7 @@ export default function PanelPrincipal() {
             fetchData();
         }, 30000); 
 
-        // Limpiar el temporizador si el usuario sale de la pantalla
+        
         return () => clearInterval(intervalId);
     }, []);
 
@@ -119,7 +118,7 @@ export default function PanelPrincipal() {
                             <span 
                                 className="text-primary fw-medium" 
                                 style={{ cursor: 'pointer' }}
-                                onClick={() => navigate('/projects')} // Ajusta la ruta exacta de tu módulo
+                                onClick={() => navigate('/projects')} 
                             >
                                 Ver todos &gt;
                             </span>
@@ -136,7 +135,6 @@ export default function PanelPrincipal() {
                                 </div>
                             ))}
                             
-                            {/* Mensaje opcional por si no hay proyectos */}
                             {advance.length === 0 && (
                                 <p className="text-muted text-center mt-4">No hay proyectos activos.</p>
                             )}
@@ -149,7 +147,6 @@ export default function PanelPrincipal() {
                         <div className="p-4">
                             <p className="h4 fw-bold mb-4">Actividad Reciente</p>
                             <div className="d-flex flex-column">
-                                {/* 3. Limitar a máximo 3 elementos usando slice(0, 3) */}
                                 {activities.slice(0, 3).map((activity, index) => (
                                     <div 
                                         key={index} 
@@ -160,14 +157,13 @@ export default function PanelPrincipal() {
                                     </div>
                                 ))}
 
-                                {/* Mensaje opcional por si no hay actividad */}
                                 {activities.length === 0 && (
                                     <p className="text-muted text-center mt-4">No hay actividad reciente.</p>
                                 )}
                             </div>
                             <button 
                                     className="btn btn-outline-secondary text-primary w-100 mt-auto fw-bold rounded-pill"
-                                    onClick={() => navigate('/evidence')} // Ajusta la ruta exacta de tu módulo
+                                    onClick={() => navigate('/evidence')} 
                                 >
                                     Ver todas las validaciones
                                 </button>
